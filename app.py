@@ -33,7 +33,7 @@ def _secret(name: str, default=None):
 TURSO_DATABASE_URL = _secret("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = _secret("TURSO_AUTH_TOKEN")
 GEMINI_API_KEY = _secret("GEMINI_API_KEY")
-GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-3.6-flash")
 
 def check_login(username: str, password: str) -> bool:
     configured_username = str(_secret("ADMIN_USERNAME", "admin"))
