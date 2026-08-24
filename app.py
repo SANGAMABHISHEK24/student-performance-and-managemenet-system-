@@ -29,6 +29,7 @@ DB_PATH = "students.db"
 import os
 import hmac
 import libsql
+from openai import OpenAI
 
 
 def _secret(name: str, default=None):
@@ -46,6 +47,9 @@ def _secret(name: str, default=None):
 
 TURSO_DATABASE_URL = _secret("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = _secret("TURSO_AUTH_TOKEN")
+
+OPENAI_API_KEY = _secret("OPENAI_API_KEY")
+OPENAI_MODEL = _secret("OPENAI_MODEL", "gpt-5.6-luna")
 
 
 def check_login(username: str, password: str) -> bool:
@@ -478,6 +482,100 @@ def page_header(title, subtitle):
     )
 
 
+
+# ----------------------------------------------------------------------------
+# AI ASSISTANT
+# ----------------------------------------------------------------------------
+
+def build_student_context():
+    """Create a compact, data-grounded snapshot for the AI assistant."""
+    students = cached_students()
+
+    if students.empty:
+        return "There are currently no students in the database."
+
+    # Keep context compact. The assistant can answer most questions from this
+    # summary without receiving every attendance/subject row.
+    lines = [
+        "STUDENT DATA:",
+        students.to_string(index=False),
+        "",
+        "SUBJECT DATA:"
+    ]
+
+    subjects = cached_subjects()
+    if subjects.empty:
+        lines.append("No subject records.")
+    else:
+        lines.append(subjects.to_string(index=False))
+
+    lines.append("")
+    lines.append("ATTENDANCE DATA:")
+    attendance = cached_attendance()
+    if attendance.empty:
+        lines.append("No attendance history records.")
+    else:
+        lines.append(attendance.to_string(index=False))
+
+    return "\n".join(lines)
+
+
+def ask_openai(question: str, history):
+    if not OPENAI_API_KEY:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not configured in Streamlit Secrets."
+        )
+
+    client = OpenAI(api_key=OPENAI_API_KEY)
+
+    system_prompt = """
+You are the AI assistant for a Student Performance & Management System.
+
+Your job is to answer questions using the supplied database context.
+
+Rules:
+1. For student, score, grade, subject, attendance, ranking, average, or
+   performance questions, use the supplied database context as the source of truth.
+2. Never invent a student, score, attendance value, subject, or database fact.
+3. If the requested information is not present, say that it is not available.
+4. You may calculate simple statistics from the supplied data.
+5. Give concise, useful answers suitable for a teacher or administrator.
+6. Protect privacy: do not expose database credentials, API keys, or secrets.
+7. For general academic advice, you may use general knowledge, but clearly
+   distinguish advice from facts found in the database.
+"""
+
+    context = build_student_context()
+
+    conversation = []
+    for message in history[-8:]:
+        conversation.append(
+            {
+                "role": message["role"],
+                "content": message["content"],
+            }
+        )
+
+    conversation.append(
+        {
+            "role": "user",
+            "content": (
+                f"Database context:\n\n{context}\n\n"
+                f"User question:\n{question}"
+            ),
+        }
+    )
+
+    response = client.responses.create(
+        model=OPENAI_MODEL,
+        instructions=system_prompt,
+        input=conversation,
+        max_output_tokens=700,
+    )
+
+    return response.output_text
+
+
 # ----------------------------------------------------------------------------
 # SIDEBAR NAVIGATION
 # ----------------------------------------------------------------------------
@@ -493,6 +591,7 @@ page = st.sidebar.radio(
         "Dashboard",
         "Student Directory",
         "Student Profile",
+        "🤖 AI Assistant",
         "Add New Student",
         "Edit / Delete Student",
         "Subjects & Charts",
@@ -812,7 +911,89 @@ elif page == "Student Profile":
 
 
 # ----------------------------------------------------------------------------
-# PAGE 4: ADD NEW STUDENT
+# PAGE 4: AI ASSISTANT
+# ----------------------------------------------------------------------------
+
+elif page == "🤖 AI Assistant":
+    page_header(
+        "🤖 AI Performance Assistant",
+        "Ask questions about your student data using natural language.",
+    )
+
+    if not OPENAI_API_KEY:
+        st.error(
+            "OpenAI is not configured. Add OPENAI_API_KEY to Streamlit Secrets."
+        )
+        st.info(
+            "Example secret: OPENAI_API_KEY = \"your-api-key\""
+        )
+    else:
+        st.caption(
+            f"Model: `{OPENAI_MODEL}` • Answers are grounded in your Turso data."
+        )
+
+        if "ai_messages" not in st.session_state:
+            st.session_state.ai_messages = []
+
+        quick_col1, quick_col2, quick_col3 = st.columns(3)
+
+        quick_questions = [
+            "Who are the students needing attention?",
+            "Who is the top performer?",
+            "Give me a class performance summary.",
+        ]
+
+        for col, question in zip(
+            [quick_col1, quick_col2, quick_col3],
+            quick_questions,
+        ):
+            if col.button(question, use_container_width=True):
+                st.session_state.ai_pending_question = question
+
+        st.markdown("---")
+
+        for message in st.session_state.ai_messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+        pending = st.session_state.pop("ai_pending_question", None)
+        question = st.chat_input(
+            "Ask about students, scores, attendance, subjects..."
+        )
+
+        if pending and not question:
+            question = pending
+
+        if question:
+            st.session_state.ai_messages.append(
+                {"role": "user", "content": question}
+            )
+
+            with st.chat_message("user"):
+                st.markdown(question)
+
+            with st.chat_message("assistant"):
+                with st.spinner("Analyzing your student data..."):
+                    try:
+                        answer = ask_openai(
+                            question,
+                            st.session_state.ai_messages[:-1],
+                        )
+                        st.markdown(answer)
+                        st.session_state.ai_messages.append(
+                            {"role": "assistant", "content": answer}
+                        )
+                    except Exception as e:
+                        st.error(f"AI assistant error: {e}")
+
+        if st.session_state.ai_messages:
+            if st.button("🗑️ Clear conversation"):
+                st.session_state.ai_messages = []
+                st.rerun()
+
+
+# ----------------------------------------------------------------------------
+# PAGE 5: ADD NEW STUDENT
 # ----------------------------------------------------------------------------
 
 elif page == "Add New Student":
@@ -864,7 +1045,7 @@ elif page == "Add New Student":
 
 
 # ----------------------------------------------------------------------------
-# PAGE 5: EDIT / DELETE STUDENT
+# PAGE 6: EDIT / DELETE STUDENT
 # ----------------------------------------------------------------------------
 
 elif page == "Edit / Delete Student":
@@ -937,7 +1118,7 @@ elif page == "Edit / Delete Student":
 
 
 # ----------------------------------------------------------------------------
-# PAGE 6: SUBJECTS & CHARTS
+# PAGE 7: SUBJECTS & CHARTS
 # ----------------------------------------------------------------------------
 
 elif page == "Subjects & Charts":
@@ -1068,7 +1249,7 @@ elif page == "Subjects & Charts":
 
 
 # ----------------------------------------------------------------------------
-# PAGE 7: ATTENDANCE HISTORY
+# PAGE 8: ATTENDANCE HISTORY
 # ----------------------------------------------------------------------------
 
 elif page == "Attendance History":
@@ -1164,7 +1345,7 @@ elif page == "Attendance History":
 
 
 # ----------------------------------------------------------------------------
-# PAGE 8: BULK IMPORT (CSV)
+# PAGE 9: BULK IMPORT (CSV)
 # ----------------------------------------------------------------------------
 
 elif page == "Bulk Import (CSV)":
