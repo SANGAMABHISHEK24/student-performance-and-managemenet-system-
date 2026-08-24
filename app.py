@@ -33,7 +33,7 @@ def _secret(name: str, default=None):
 TURSO_DATABASE_URL = _secret("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = _secret("TURSO_AUTH_TOKEN")
 GEMINI_API_KEY = _secret("GEMINI_API_KEY")
-GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-2.5-flash")
 
 def check_login(username: str, password: str) -> bool:
     configured_username = str(_secret("ADMIN_USERNAME", "admin"))
@@ -641,6 +641,20 @@ elif selection == "🤖 AI Insights":
             """,
             unsafe_allow_html=True,
         )
+
+        if "ai_input_version" not in st.session_state:
+            st.session_state.ai_input_version = 0
+
+        if "messages" not in st.session_state:
+            st.session_state.messages = [
+                {
+                    "role": "assistant",
+                    "content": (
+                        "Hello! 👋 I can analyze your student data. "
+                        "What would you like to know?"
+                    ),
+                }
+            ]
 
         # st.form allows the Enter key to submit the question on desktop
         # and mobile browsers.
