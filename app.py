@@ -559,11 +559,17 @@ elif selection == "🤖 AI Insights":
 
         st.markdown("### 💬 Ask the AI")
 
-        # Mobile-friendly input: text field + explicit button.
+        # Use a changing widget key so the question box resets after every
+        # successful request. This works reliably on desktop and mobile.
+        if "ai_input_version" not in st.session_state:
+            st.session_state.ai_input_version = 0
+
+        input_key = f"ai_question_{st.session_state.ai_input_version}"
+
         prompt = st.text_input(
             "Your question",
             placeholder="Example: Who are the top 3 students?",
-            key="ai_question",
+            key=input_key,
         )
 
         send_col, clear_col = st.columns([3, 1])
@@ -591,6 +597,7 @@ elif selection == "🤖 AI Insights":
                     ),
                 }
             ]
+            st.session_state.ai_input_version += 1
             st.rerun()
 
         if send_clicked and prompt.strip():
@@ -684,6 +691,10 @@ USER QUESTION:
                             }
                         )
 
+                        # Reset the question box after a successful request.
+                        st.session_state.ai_input_version += 1
+                        st.rerun()
+
                     except Exception as e:
                         st.error("⚠️ AI Assistant Error")
                         st.code(str(e), language="text")
@@ -702,4 +713,5 @@ USER QUESTION:
                         ),
                     }
                 ]
+                st.session_state.ai_input_version += 1
                 st.rerun()
