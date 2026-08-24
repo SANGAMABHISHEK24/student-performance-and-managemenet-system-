@@ -50,51 +50,259 @@ def check_login(username: str, password: str) -> bool:
 # MODERN UI/CSS INJECTION
 # ----------------------------------------------------------------------------
 st.markdown("""
-    <style>
-    /* Global App Styling */
-    .stApp { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
-    
-    /* Sidebar Styling */
-    [data-testid="stSidebar"] {
-        background: #0f172a;
-        border-right: 1px solid #1e293b;
-    }
-    [data-testid="stSidebar"] * { color: #f8fafc !important; }
-    
-    /* Hero/Header Section */
+<style>
+
+/* =========================================================
+   GLOBAL APP
+   ========================================================= */
+
+.stApp {
+    background-color: #f8fafc;
+    font-family: 'Inter', sans-serif;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+[data-testid="stSidebar"] {
+    background: #0f172a;
+    border-right: 1px solid #1e293b;
+}
+
+[data-testid="stSidebar"] * {
+    color: #f8fafc !important;
+}
+
+
+/* =========================================================
+   SIDEBAR METRIC - FIX WHITE BOX
+   ========================================================= */
+
+[data-testid="stSidebar"] div[data-testid="stMetric"] {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    padding: 18px !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stMetricLabel"] {
+    color: #94a3b8 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stMetricValue"] {
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   SIDEBAR BUTTON - FIX WHITE LOGOUT BOX
+   ========================================================= */
+
+[data-testid="stSidebar"] .stButton > button {
+    width: 100%;
+    min-height: 46px;
+
+    background: #1e293b !important;
+    color: #f8fafc !important;
+
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   SIDEBAR RADIO NAVIGATION
+   ========================================================= */
+
+[data-testid="stSidebar"] [role="radiogroup"] {
+    gap: 6px;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label {
+    border-radius: 10px !important;
+    padding: 6px 8px !important;
+    transition: background 0.2s ease;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label:hover {
+    background: #1e293b !important;
+}
+
+
+/* =========================================================
+   HERO / HEADER
+   ========================================================= */
+
+.hero {
+    padding: 24px 32px;
+    border-radius: 16px;
+
+    background: linear-gradient(
+        135deg,
+        #1e293b 0%,
+        #334155 100%
+    );
+
+    color: white;
+    margin-bottom: 24px;
+
+    box-shadow:
+        0 4px 20px rgba(15, 23, 42, 0.08);
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.hero p {
+    margin: 8px 0 0;
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+
+/* =========================================================
+   CUSTOM METRIC CARDS
+   ========================================================= */
+
+.metric-card {
+    padding: 20px;
+    border-radius: 16px;
+
+    background: white;
+    border: 1px solid #e2e8f0;
+
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.metric-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+
+    color: #64748b;
+
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 800;
+
+    color: #0f172a;
+
+    margin: 8px 0;
+}
+
+.metric-note {
+    font-size: 0.8rem;
+    color: #10b981;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   NORMAL STREAMLIT METRICS
+   ========================================================= */
+
+div[data-testid="stMetric"] {
+    background: white;
+
+    border: 1px solid #e2e8f0;
+
+    padding: 16px;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 1px 3px rgba(0,0,0,0.04);
+}
+
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 24px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 50px;
+
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+
+/* =========================================================
+   SIDEBAR DIVIDERS
+   ========================================================= */
+
+[data-testid="stSidebar"] hr {
+    border-color: #1e293b !important;
+}
+
+
+/* =========================================================
+   SIDEBAR INPUTS
+   ========================================================= */
+
+[data-testid="stSidebar"] input {
+    background: #1e293b !important;
+    color: white !important;
+    border-color: #334155 !important;
+}
+
+
+/* =========================================================
+   MOBILE / SMALL SCREEN
+   ========================================================= */
+
+@media (max-width: 768px) {
+
     .hero {
-        padding: 24px 32px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: white;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
-    }
-    .hero h1 { margin: 0; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
-    .hero p { margin: 8px 0 0; color: #94a3b8; font-size: 1rem; }
-
-    /* Custom Metric Cards */
-    .metric-card {
         padding: 20px;
-        border-radius: 16px;
-        background: white;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s ease;
     }
-    .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-    .metric-label { font-size: 0.85rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .metric-value { font-size: 2rem; font-weight: 800; color: #0f172a; margin: 8px 0; }
-    .metric-note { font-size: 0.8rem; color: #10b981; font-weight: 500; }
 
-    /* Clean up native Streamlit elements */
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
-    .stTabs [data-baseweb="tab"] { height: 50px; padding-top: 10px; padding-bottom: 10px; }
-    div[data-testid="stMetric"] {
-        background: white; border: 1px solid #e2e8f0; padding: 16px; 
-        border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    .hero h1 {
+        font-size: 1.5rem;
     }
-    </style>
+
+    .metric-card {
+        padding: 16px;
+    }
+
+}
+
+</style>
 """, unsafe_allow_html=True)
 
 def page_header(title, subtitle):
