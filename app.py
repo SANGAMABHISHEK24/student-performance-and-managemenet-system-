@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import hashlib
-import hmac
 import plotly.express as px
 from datetime import datetime, date
 
@@ -19,36 +18,18 @@ DB_PATH = "students.db"
 # ----------------------------------------------------------------------------
 # AUTH CONFIG
 # ----------------------------------------------------------------------------
-# Set ADMIN_USERNAME and ADMIN_PASSWORD in Streamlit Secrets.
-# Do not hardcode production credentials in this file.
-# ----------------------------------------------------------------------------
-
-def check_login(username: str, password: str) -> bool:
-    configured_username = str(_secret("ADMIN_USERNAME", "admin"))
-    configured_password = str(_secret("ADMIN_PASSWORD", ""))
-
-    if not configured_password:
-        return False
-
-    return (
-        hmac.compare_digest(username, configured_username)
-        and hmac.compare_digest(password, configured_password)
-    )
-
-
-# ----------------------------------------------------------------------------
-# DATABASE LAYER (Turso / libSQL)
-# ----------------------------------------------------------------------------
-# Turso credentials are stored in Streamlit Secrets for deployment.
-# For local development, you can use .streamlit/secrets.toml.
-#
-# Current Turso Python documentation uses the `libsql` package for direct
-# remote HTTP connections:
-#     conn = libsql.connect(database=URL, auth_token=TOKEN)
+# Production credentials are stored in Streamlit Secrets.
+# Required secrets:
+#   ADMIN_USERNAME
+#   ADMIN_PASSWORD
+#   TURSO_DATABASE_URL
+#   TURSO_AUTH_TOKEN
 # ----------------------------------------------------------------------------
 
 import os
+import hmac
 import libsql
+
 
 def _secret(name: str, default=None):
     """Read a value from Streamlit Secrets, with environment fallback."""
@@ -67,12 +48,28 @@ TURSO_DATABASE_URL = _secret("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = _secret("TURSO_AUTH_TOKEN")
 
 
+def check_login(username: str, password: str) -> bool:
+    configured_username = str(_secret("ADMIN_USERNAME", "admin"))
+    configured_password = str(_secret("ADMIN_PASSWORD", ""))
+
+    if not configured_password:
+        return False
+
+    return (
+        hmac.compare_digest(username, configured_username)
+        and hmac.compare_digest(password, configured_password)
+    )
+
+
+# ----------------------------------------------------------------------------
+# DATABASE LAYER (Turso / libSQL)
+# ----------------------------------------------------------------------------
+
 def get_connection():
-    """Create a connection to the remote Turso database."""
     if not TURSO_DATABASE_URL or not TURSO_AUTH_TOKEN:
         raise RuntimeError(
-            "Turso credentials are missing. Set TURSO_DATABASE_URL and "
-            "TURSO_AUTH_TOKEN in Streamlit Secrets."
+            "Turso credentials are missing. Configure "
+            "TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Streamlit Secrets."
         )
 
     return libsql.connect(
@@ -82,8 +79,7 @@ def get_connection():
 
 
 def _rows_to_dataframe(cursor, columns):
-    rows = cursor.fetchall()
-    return pd.DataFrame(rows, columns=columns)
+    return pd.DataFrame(cursor.fetchall(), columns=columns)
 
 
 def init_db():
@@ -128,7 +124,6 @@ def init_db():
             """
         )
 
-        # Helpful indexes for the most common lookups.
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_subjects_student_id "
             "ON subjects(student_id)"
@@ -190,8 +185,6 @@ def delete_student(student_id):
     conn = get_connection()
     try:
         cur = conn.cursor()
-        # Explicit deletes keep this robust even if foreign-key enforcement
-        # differs between client/server configurations.
         cur.execute("DELETE FROM subjects WHERE student_id=?", (student_id,))
         cur.execute("DELETE FROM attendance_log WHERE student_id=?", (student_id,))
         cur.execute("DELETE FROM students WHERE id=?", (student_id,))
@@ -214,7 +207,6 @@ def fetch_subjects(student_id=None) -> pd.DataFrame:
     conn = get_connection()
     try:
         cur = conn.cursor()
-
         query = (
             "SELECT s.id, s.student_id, st.name AS student_name, "
             "s.subject_name, s.score "
@@ -252,7 +244,6 @@ def fetch_attendance_log(student_id=None) -> pd.DataFrame:
     conn = get_connection()
     try:
         cur = conn.cursor()
-
         query = (
             "SELECT a.id, a.student_id, st.name AS student_name, "
             "a.log_date, a.attendance_pct "
@@ -332,7 +323,7 @@ if not st.session_state.logged_in:
             else:
                 st.error("❌ Invalid username or password.")
 
-    st.caption("Admin credentials are configured through Streamlit Secrets.")
+    st.caption("Admin credentials are configured securely through Streamlit Secrets.")
     st.stop()
 
 # ----------------------------------------------------------------------------
@@ -346,6 +337,7 @@ page = st.sidebar.radio(
     [
         "Dashboard",
         "Student Directory",
+        "Student Profile",
         "Add New Student",
         "Edit / Delete Student",
         "Subjects & Charts",
@@ -418,6 +410,33 @@ if page == "Dashboard":
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
+
+        st.markdown("---")
+        st.subheader("⚠️ Students Needing Attention")
+
+        at_risk = df[(df["Score"] < 60) | (df["Attendance (%)"] < 75)].copy()
+
+        if at_risk.empty:
+            st.success("No students currently meet the attention criteria.")
+        else:
+            at_risk["Reason"] = at_risk.apply(
+                lambda row: (
+                    "Low score & attendance"
+                    if row["Score"] < 60 and row["Attendance (%)"] < 75
+                    else "Low score"
+                    if row["Score"] < 60
+                    else "Low attendance"
+                ),
+                axis=1,
+            )
+            st.dataframe(
+                at_risk[
+                    ["ID", "Name", "Grade", "Score", "Attendance (%)", "Reason"]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+
 # ----------------------------------------------------------------------------
 # PAGE 2: STUDENT DIRECTORY
 # ----------------------------------------------------------------------------
@@ -455,7 +474,117 @@ elif page == "Student Directory":
     )
 
 # ----------------------------------------------------------------------------
-# PAGE 3: ADD NEW STUDENT
+# PAGE 3: STUDENT PROFILE
+# ----------------------------------------------------------------------------
+elif page == "Student Profile":
+    st.title("👨‍🎓 Student Profile")
+    st.markdown(
+        "View a complete performance, subject and attendance summary for one student."
+    )
+
+    df = fetch_all_students()
+
+    if df.empty:
+        st.warning("No students in the database yet. Add a student first.")
+    else:
+        selected_profile_id = st.selectbox(
+            "Select Student",
+            options=df["ID"].tolist(),
+            format_func=lambda x: (
+                f"{x} - {df.loc[df['ID'] == x, 'Name'].values[0]}"
+            ),
+            key="profile_student_id",
+        )
+
+        student = df[df["ID"] == selected_profile_id].iloc[0]
+        subjects_df = fetch_subjects(selected_profile_id)
+        attendance_df = fetch_attendance_log(selected_profile_id)
+
+        st.markdown("---")
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Student ID", str(student["ID"]))
+        c2.metric("Grade", student["Grade"])
+        c3.metric("Overall Score", f'{student["Score"]}/100')
+        c4.metric("Attendance", f'{student["Attendance (%)"]}%')
+
+        st.subheader(f'📋 {student["Name"]}')
+
+        info_col, chart_col = st.columns([1, 2])
+
+        with info_col:
+            st.markdown("### Student Information")
+            st.write(f'**Name:** {student["Name"]}')
+            st.write(f'**Student ID:** {student["ID"]}')
+            st.write(f'**Grade:** {student["Grade"]}')
+            st.write(f'**Overall Score:** {student["Score"]}')
+            st.write(f'**Attendance:** {student["Attendance (%)"]}%')
+
+            if student["Score"] >= 90 and student["Attendance (%)"] >= 90:
+                st.success("🌟 Excellent overall performance")
+            elif student["Score"] < 60 or student["Attendance (%)"] < 75:
+                st.warning("⚠️ Student may need academic or attendance support")
+            else:
+                st.info("ℹ️ Student is performing within the normal range")
+
+        with chart_col:
+            st.markdown("### Subject Performance")
+
+            if subjects_df.empty:
+                st.info("No subject scores recorded for this student.")
+            else:
+                fig_profile = px.bar(
+                    subjects_df,
+                    x="subject_name",
+                    y="score",
+                    text="score",
+                    color="subject_name",
+                )
+                fig_profile.update_traces(textposition="outside")
+                fig_profile.update_layout(
+                    yaxis_range=[0, 110],
+                    xaxis_title="Subject",
+                    yaxis_title="Score",
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_profile, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("🗓️ Attendance History")
+
+        if attendance_df.empty:
+            st.info("No attendance history recorded for this student.")
+        else:
+            attendance_df = attendance_df.sort_values("log_date")
+            fig_att_profile = px.line(
+                attendance_df,
+                x="log_date",
+                y="attendance_pct",
+                markers=True,
+            )
+            fig_att_profile.update_layout(
+                yaxis_range=[0, 100],
+                xaxis_title="Date",
+                yaxis_title="Attendance (%)",
+            )
+            st.plotly_chart(fig_att_profile, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("📚 Subject Details")
+
+        if subjects_df.empty:
+            st.info("No subject details available.")
+        else:
+            st.dataframe(
+                subjects_df[["subject_name", "score"]].rename(
+                    columns={"subject_name": "Subject", "score": "Score"}
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+# ----------------------------------------------------------------------------
+# PAGE 4: ADD NEW STUDENT
 # ----------------------------------------------------------------------------
 elif page == "Add New Student":
     st.title("➕ Add New Student")
@@ -484,7 +613,7 @@ elif page == "Add New Student":
                 st.cache_data.clear()
 
 # ----------------------------------------------------------------------------
-# PAGE 4: EDIT / DELETE STUDENT
+# PAGE 5: EDIT / DELETE STUDENT
 # ----------------------------------------------------------------------------
 elif page == "Edit / Delete Student":
     st.title("✏️ Edit / Delete Student")
@@ -532,7 +661,7 @@ elif page == "Edit / Delete Student":
                 st.rerun()
 
 # ----------------------------------------------------------------------------
-# PAGE 5: SUBJECTS & CHARTS
+# PAGE 6: SUBJECTS & CHARTS
 # ----------------------------------------------------------------------------
 elif page == "Subjects & Charts":
     st.title("📚 Subjects & Per-Subject Performance")
@@ -606,7 +735,7 @@ elif page == "Subjects & Charts":
             st.plotly_chart(fig2, use_container_width=True)
 
 # ----------------------------------------------------------------------------
-# PAGE 6: ATTENDANCE HISTORY
+# PAGE 7: ATTENDANCE HISTORY
 # ----------------------------------------------------------------------------
 elif page == "Attendance History":
     st.title("🗓️ Attendance History Over Time")
@@ -663,7 +792,7 @@ elif page == "Attendance History":
             )
 
 # ----------------------------------------------------------------------------
-# PAGE 7: BULK IMPORT (CSV)
+# PAGE 8: BULK IMPORT (CSV)
 # ----------------------------------------------------------------------------
 elif page == "Bulk Import (CSV)":
     st.title("📥 Bulk Import Students via CSV")
