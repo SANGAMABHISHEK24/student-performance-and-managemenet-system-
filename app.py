@@ -33,7 +33,7 @@ def _secret(name: str, default=None):
 TURSO_DATABASE_URL = _secret("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = _secret("TURSO_AUTH_TOKEN")
 GEMINI_API_KEY = _secret("GEMINI_API_KEY")
-GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = _secret("GEMINI_MODEL", "gemini-3.6-flash")
 
 def check_login(username: str, password: str) -> bool:
     configured_username = str(_secret("ADMIN_USERNAME", "admin"))
@@ -166,6 +166,78 @@ st.markdown("""
         [data-testid="stChatMessage"] {
             padding: 8px 4px !important;
         }
+    }
+
+
+    /* Premium AI assistant */
+    .ai-section-title {
+        display:flex; align-items:center; gap:14px; margin:12px 0 18px;
+    }
+    .ai-title-icon {
+        width:48px; height:48px; border-radius:14px;
+        display:flex; align-items:center; justify-content:center;
+        background:linear-gradient(135deg,#ff4b4b,#ff7a59);
+        color:white; font-size:23px; font-weight:800;
+        box-shadow:0 8px 22px rgba(255,75,75,.20);
+    }
+    .ai-title { font-size:1.75rem; font-weight:800; color:#0f172a; }
+    .ai-subtitle { margin-top:4px; color:#64748b; font-size:.92rem; }
+
+    div[data-testid="stForm"] {
+        background:#fff; border:1px solid #e2e8f0 !important;
+        border-radius:18px !important; padding:10px !important;
+        box-shadow:0 8px 30px rgba(15,23,42,.07);
+    }
+    div[data-testid="stForm"] input {
+        min-height:50px !important; background:#f8fafc !important;
+        color:#0f172a !important; border:1px solid #e2e8f0 !important;
+        border-radius:12px !important; font-size:15px !important;
+    }
+    div[data-testid="stForm"] input:focus {
+        border-color:#ff4b4b !important;
+        box-shadow:0 0 0 3px rgba(255,75,75,.10) !important;
+    }
+    div[data-testid="stForm"] button[kind="formSubmit"] {
+        min-height:50px !important; border-radius:12px !important;
+        border:none !important; background:linear-gradient(135deg,#ff4b4b,#ff6b57) !important;
+        color:white !important; font-weight:700 !important; font-size:15px !important;
+        box-shadow:0 6px 16px rgba(255,75,75,.20);
+    }
+    [data-testid="stChatMessage"] {
+        border-radius:16px !important; padding:14px 16px !important;
+        margin:10px 0 !important; border:1px solid #e8edf3 !important;
+    }
+    [data-testid="stChatMessage"] p { font-size:15px !important; line-height:1.65 !important; }
+
+    /* Premium sidebar */
+    [data-testid="stSidebar"] {
+        background:linear-gradient(180deg,#0b1220 0%,#111827 100%) !important;
+    }
+    [data-testid="stSidebar"] div[data-testid="stMetric"] {
+        background:linear-gradient(145deg,#1b2940,#172236) !important;
+        border:1px solid #334155 !important; border-radius:17px !important;
+        box-shadow:0 10px 28px rgba(0,0,0,.18) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stMetricLabel"] { color:#cbd5e1 !important; }
+    [data-testid="stSidebar"] [data-testid="stMetricValue"] { color:#fff !important; }
+    [data-testid="stSidebar"] .stButton > button {
+        background:#172236 !important; color:#e2e8f0 !important;
+        border:1px solid #334155 !important; border-radius:12px !important;
+        min-height:44px !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background:#24324a !important; border-color:#475569 !important;
+    }
+
+    @media (max-width:768px) {
+        .block-container { padding:1rem !important; }
+        .ai-title { font-size:1.45rem; }
+        .ai-title-icon { width:42px; height:42px; border-radius:12px; }
+        .ai-subtitle { font-size:.82rem; }
+        div[data-testid="stForm"] { padding:8px !important; border-radius:14px !important; }
+        div[data-testid="stForm"] input,
+        div[data-testid="stForm"] button[kind="formSubmit"] { min-height:48px !important; }
+        [data-testid="stChatMessage"] { padding:10px 12px !important; margin:8px 0 !important; }
     }
 
 </style>
@@ -557,120 +629,84 @@ elif selection == "🤖 AI Insights":
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-        st.markdown("### 💬 Ask the AI")
-
-        # Use a changing widget key so the question box resets after every
-        # successful request. This works reliably on desktop and mobile.
-        if "ai_input_version" not in st.session_state:
-            st.session_state.ai_input_version = 0
-
-        input_key = f"ai_question_{st.session_state.ai_input_version}"
-
-        prompt = st.text_input(
-            "Your question",
-            placeholder="Example: Who are the top 3 students?",
-            key=input_key,
+        st.markdown(
+            """
+            <div class="ai-section-title">
+                <div class="ai-title-icon">✦</div>
+                <div>
+                    <div class="ai-title">Ask the AI</div>
+                    <div class="ai-subtitle">Get insights from your live student performance data</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        send_col, clear_col = st.columns([3, 1])
-
-        with send_col:
-            send_clicked = st.button(
-                "🚀 Ask AI",
-                use_container_width=True,
-                type="primary",
+        # st.form allows the Enter key to submit the question on desktop
+        # and mobile browsers.
+        with st.form(
+            key=f"ai_form_{st.session_state.ai_input_version}",
+            clear_on_submit=True,
+        ):
+            prompt = st.text_input(
+                "Your question",
+                placeholder="Ask about students, scores, attendance, or performance...",
+                label_visibility="collapsed",
             )
-
-        with clear_col:
-            clear_clicked = st.button(
-                "🗑️ Clear",
+            send_clicked = st.form_submit_button(
+                "✦  Ask AI",
                 use_container_width=True,
             )
-
-        if clear_clicked:
-            st.session_state.messages = [
-                {
-                    "role": "assistant",
-                    "content": (
-                        "Hello! 👋 I can analyze your student data. "
-                        "What would you like to know?"
-                    ),
-                }
-            ]
-            st.session_state.ai_input_version += 1
-            st.rerun()
 
         if send_clicked and prompt.strip():
             question = prompt.strip()
-
-            st.session_state.messages.append(
-                {"role": "user", "content": question}
-            )
+            st.session_state.messages.append({"role": "user", "content": question})
 
             with st.chat_message("user"):
                 st.write(question)
 
             with st.chat_message("assistant"):
-                with st.spinner("🤖 Analyzing student data..."):
+                with st.spinner("Analyzing your student data..."):
                     try:
                         subjects_data = fetch_subjects()
                         attendance_data = fetch_attendance_log()
 
                         context = (
-                            "STUDENT DATA:\n"
-                            + df_all.to_string(index=False)
-                            + "\n\n"
-                            + "SUBJECT DATA:\n"
-                            + subjects_data.to_string(index=False)
-                            + "\n\n"
-                            + "ATTENDANCE DATA:\n"
-                            + attendance_data.to_string(index=False)
+                            "STUDENT DATA:\n" + df_all.to_string(index=False)
+                            + "\n\nSUBJECT DATA:\n" + subjects_data.to_string(index=False)
+                            + "\n\nATTENDANCE DATA:\n" + attendance_data.to_string(index=False)
                         )
 
                         system_prompt = """
-You are an AI assistant for a Student Performance
-and Management System.
-
+You are an AI assistant for a Student Performance and Management System.
 Use the supplied database information as the source of truth.
-
-Rules:
-1. Never invent student information.
-2. Never invent scores or attendance.
-3. You may calculate averages and rankings.
-4. If information is unavailable, say so.
-5. Give concise answers.
-6. Provide useful academic recommendations when asked.
-7. Never reveal passwords, API keys, tokens, database URLs,
-   or other secrets.
+Never invent student information, scores, grades, subjects, or attendance.
+You may calculate averages, rankings, counts, and comparisons.
+If information is unavailable, clearly say so.
+Keep answers concise and useful.
+Give academic recommendations when requested.
+Never reveal passwords, API keys, tokens, database URLs, or secrets.
 """
 
-                        recent_messages = st.session_state.messages[-6:]
-
                         conversation = "\n".join(
-                            f"{message['role'].upper()}: {message['content']}"
-                            for message in recent_messages
+                            f"{m['role'].upper()}: {m['content']}"
+                            for m in st.session_state.messages[-8:]
                         )
 
                         full_prompt = f"""
 {system_prompt}
 
 DATABASE INFORMATION:
-
 {context}
 
 RECENT CONVERSATION:
-
 {conversation}
 
 USER QUESTION:
-
 {question}
 """
 
-                        client = genai.Client(
-                            api_key=GEMINI_API_KEY
-                        )
-
+                        client = genai.Client(api_key=GEMINI_API_KEY)
                         response = client.models.generate_content(
                             model=GEMINI_MODEL,
                             contents=full_prompt,
@@ -681,37 +717,26 @@ USER QUESTION:
                             if getattr(response, "text", None)
                             else "Sorry, I couldn't generate an answer."
                         )
-
                         st.write(answer)
 
                         st.session_state.messages.append(
-                            {
-                                "role": "assistant",
-                                "content": answer,
-                            }
+                            {"role": "assistant", "content": answer}
                         )
-
-                        # Reset the question box after a successful request.
                         st.session_state.ai_input_version += 1
                         st.rerun()
 
                     except Exception as e:
-                        st.error("⚠️ AI Assistant Error")
+                        st.error("AI Assistant Error")
                         st.code(str(e), language="text")
 
-        elif send_clicked and not prompt.strip():
+        elif send_clicked:
             st.warning("Please enter a question first.")
 
         if len(st.session_state.messages) > 1:
-            if st.button("🗑️ Clear Chat History"):
-                st.session_state.messages = [
-                    {
-                        "role": "assistant",
-                        "content": (
-                            "Hello! 👋 I can analyze your student data. "
-                            "What would you like to know?"
-                        ),
-                    }
-                ]
+            if st.button("🗑️  Clear Chat History", key="clear_ai_history"):
+                st.session_state.messages = [{
+                    "role": "assistant",
+                    "content": "Hello! 👋 I can analyze your student data. What would you like to know?"
+                }]
                 st.session_state.ai_input_version += 1
                 st.rerun()
