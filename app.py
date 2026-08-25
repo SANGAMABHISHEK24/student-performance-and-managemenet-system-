@@ -1,5 +1,5 @@
 # --------------------------------------------------------------
-# StudentHub OS – Advanced Streamlit Application
+# StudentHub OS – Advanced Streamlit Application (sklearn removed)
 # --------------------------------------------------------------
 # Author: Inception Labs (Mercury)
 # --------------------------------------------------------------
@@ -15,8 +15,7 @@ from datetime import datetime, date
 import streamlit as st
 import libsql
 from groq import Groq
-from sklearn.linear_model import LinearRegression
-import numpy as np
+import numpy as np  # kept for any future numeric work
 
 # --------------------------------------------------------------
 # PAGE CONFIGURATION
