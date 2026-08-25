@@ -56,7 +56,6 @@ def check_login(username: str, password: str) -> bool:
 # ----------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* ===== GLOBAL ===== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     .stApp {
         background: linear-gradient(145deg, #0b1220 0%, #111827 100%);
@@ -64,13 +63,11 @@ st.markdown("""
     }
     .stApp > header { background: transparent !important; }
     
-    /* ===== SCROLLBAR ===== */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
     ::-webkit-scrollbar-thumb { background: #ff4b4b; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #ff6b57; }
 
-    /* ===== SIDEBAR ===== */
     [data-testid="stSidebar"] {
         background: rgba(15, 23, 42, 0.85) !important;
         backdrop-filter: blur(20px);
@@ -105,16 +102,6 @@ st.markdown("""
         background: rgba(255,255,255,0.04) !important;
         border-color: rgba(255,255,255,0.06) !important;
     }
-    [data-testid="stSidebar"] .stRadio label[data-baseweb="radio"] {
-        background: transparent !important;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
-        gap: 2px !important;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
-        background: transparent !important;
-    }
-    /* Override radio selected state */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-selected="true"] {
         background: linear-gradient(135deg, rgba(255,75,75,0.12), rgba(255,107,87,0.05)) !important;
         border-color: rgba(255,75,75,0.2) !important;
@@ -124,16 +111,12 @@ st.markdown("""
         color: #f8fafc !important;
     }
 
-    /* ===== METRIC CARDS IN SIDEBAR ===== */
     [data-testid="stSidebar"] div[data-testid="stMetric"] {
         background: rgba(30,41,59,0.6) !important;
         border: 1px solid rgba(255,255,255,0.04) !important;
         border-radius: 18px !important;
         padding: 16px 18px !important;
         backdrop-filter: blur(8px) !important;
-    }
-    [data-testid="stSidebar"] div[data-testid="stMetric"]:hover {
-        border-color: rgba(255,255,255,0.08) !important;
     }
     [data-testid="stSidebar"] [data-testid="stMetricLabel"] {
         color: #94a3b8 !important;
@@ -148,7 +131,6 @@ st.markdown("""
         font-weight: 800 !important;
     }
 
-    /* ===== LOGOUT BUTTON ===== */
     [data-testid="stSidebar"] .stButton > button {
         width: 100% !important;
         min-height: 48px !important;
@@ -167,13 +149,11 @@ st.markdown("""
         transform: translateY(-1px);
     }
 
-    /* ===== MAIN CONTENT ===== */
     .block-container {
         padding: 20px 24px 40px !important;
         max-width: 1400px !important;
     }
 
-    /* ===== HERO HEADER ===== */
     .hero-header {
         background: linear-gradient(135deg, rgba(30,41,59,0.7), rgba(15,23,42,0.9));
         backdrop-filter: blur(12px);
@@ -225,7 +205,6 @@ st.markdown("""
         margin-top: 8px;
     }
 
-    /* ===== METRIC GRID ===== */
     .metric-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -268,7 +247,6 @@ st.markdown("""
     .metric-card .sub.warning { color: #f59e0b; }
     .metric-card .sub.danger { color: #ef4444; }
 
-    /* ===== CARDS ===== */
     .glass-card {
         background: rgba(15,23,42,0.5);
         backdrop-filter: blur(8px);
@@ -295,36 +273,6 @@ st.markdown("""
         color: #ff4b4b;
     }
 
-    /* ===== DATA TABLE ===== */
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-    }
-    .data-table th {
-        text-align: left;
-        padding: 12px 16px;
-        color: #94a3b8;
-        font-weight: 600;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 1px solid rgba(148,163,184,0.06);
-    }
-    .data-table td {
-        padding: 10px 16px;
-        border-bottom: 1px solid rgba(148,163,184,0.04);
-        color: #e2e8f0;
-    }
-    .data-table tr:hover td {
-        background: rgba(255,255,255,0.02);
-    }
-    .data-table .grade-A { color: #10b981; font-weight: 700; }
-    .data-table .grade-B { color: #3b82f6; font-weight: 700; }
-    .data-table .grade-C { color: #f59e0b; font-weight: 700; }
-    .data-table .grade-F { color: #ef4444; font-weight: 700; }
-
-    /* ===== FORMS ===== */
     .stForm {
         background: rgba(15,23,42,0.5) !important;
         backdrop-filter: blur(8px) !important;
@@ -369,7 +317,6 @@ st.markdown("""
         box-shadow: 0 12px 32px rgba(255,75,75,0.3) !important;
     }
 
-    /* ===== TABS ===== */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px !important;
         background: rgba(15,23,42,0.4) !important;
@@ -396,7 +343,6 @@ st.markdown("""
         border: 1px solid rgba(255,75,75,0.1) !important;
     }
 
-    /* ===== CHAT MESSAGES ===== */
     .chat-container {
         max-height: 500px;
         overflow-y: auto;
@@ -443,7 +389,6 @@ st.markdown("""
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== LOGIN PAGE ===== */
     .login-wrapper {
         display: flex;
         justify-content: center;
@@ -583,7 +528,6 @@ st.markdown("""
         margin-bottom: 16px;
     }
 
-    /* ===== AI SECTION ===== */
     .ai-header {
         display: flex;
         align-items: center;
@@ -611,7 +555,6 @@ st.markdown("""
         font-size: 0.9rem;
     }
 
-    /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
         .block-container { padding: 12px 16px !important; }
         .hero-header { padding: 20px !important; border-radius: 20px !important; }
@@ -634,7 +577,6 @@ st.markdown("""
         .metric-card .label { font-size: 0.6rem !important; }
     }
 
-    /* ===== UTILITY ===== */
     .text-gradient {
         background: linear-gradient(to right, #f8fafc, #94a3b8);
         -webkit-background-clip: text;
@@ -658,6 +600,23 @@ st.markdown("""
     .badge-red { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.1); }
 </style>
 """, unsafe_allow_html=True)
+
+def page_header(title, subtitle):
+    st.markdown(f"""
+        <div class="hero-header">
+            <h1>{html.escape(str(title))}</h1>
+            <p>{html.escape(str(subtitle))}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+def metric_card(label, value, note="", note_type=""):
+    st.markdown(f"""
+        <div class="metric-card">
+            <div class="label">{html.escape(str(label))}</div>
+            <div class="value">{html.escape(str(value))}</div>
+            <div class="sub {html.escape(str(note_type))}">{html.escape(str(note))}</div>
+        </div>
+    """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------------
 # DATABASE LAYER
@@ -799,4 +758,45 @@ if not st.session_state.logged_in:
     st.markdown('<div class="login-wrapper"><div class="login-card">', unsafe_allow_html=True)
     st.markdown("""
         <div class="login-badge">🎓</div>
-        <div class="login-title">
+        <div class="login-title">StudentHub OS</div>
+        <div class="login-subtitle">Secure Admin Portal · Sign in to continue</div>
+    """, unsafe_allow_html=True)
+
+    now = time.time()
+    locked_out = now < st.session_state.lockout_until
+
+    if locked_out:
+        remaining = int(st.session_state.lockout_until - now)
+        st.markdown(
+            f'<div class="login-lockout">🔒 Too many failed attempts. Try again in {remaining}s.</div>',
+            unsafe_allow_html=True
+        )
+
+    with st.form("login_form", clear_on_submit=False):
+        username = st.text_input("Username", placeholder="admin", disabled=locked_out)
+        password = st.text_input("Password", type="password", placeholder="••••••••", disabled=locked_out)
+        submitted = st.form_submit_button("Authenticate →", use_container_width=True, disabled=locked_out)
+
+        if submitted and not locked_out:
+            if check_login(username, password):
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.session_state.login_attempts = 0
+                st.session_state.last_active = time.time()
+                st.rerun()
+            else:
+                st.session_state.login_attempts += 1
+                remaining_attempts = MAX_LOGIN_ATTEMPTS - st.session_state.login_attempts
+                if st.session_state.login_attempts >= MAX_LOGIN_ATTEMPTS:
+                    st.session_state.lockout_until = time.time() + LOCKOUT_SECONDS
+                    st.session_state.login_attempts = 0
+                    st.rerun()
+                else:
+                    st.error(f"❌ Invalid credentials. {remaining_attempts} attempt(s) left before temporary lockout.")
+
+    st.markdown('<div class="login-footer">Protected access · Unauthorized entry is prohibited</div>', unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
+    st.stop()
+
+# ----------------------------------------------------------------------------
+# SIDEBAR
